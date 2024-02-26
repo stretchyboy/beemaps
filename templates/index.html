@@ -1,0 +1,38 @@
+<html>
+  <body>
+    <form action="/map" method="post">
+      <div>
+        <label for="heatmap_points">Heatmap Points</label>
+        <br />
+        Latitude,Longitude
+        <br />
+        <textarea name="heatmap_points" cols="40" rows="10">{{ form.heatmap_points }}
+</textarea>
+      </div>
+      <div>
+        <label for="point_points">Points</label>
+        <br />
+        Latitude,Longitude
+        <br />
+        <textarea name="point_points" cols="40" rows="10">
+{{ form.point_points }}</textarea
+        >
+      </div>
+       <div>
+        <label for="point_points2">Points 2</label>
+        <br />
+        Latitude,Longitude
+        <br />
+        <textarea name="point_points2" cols="40" rows="10">
+{{ form.point_points2 }}</textarea
+        >
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <br />
+        <input type="password" name="password" value="{{ form.password }}" />
+      </div>
+      <input type="submit" name="Do" value="Make Map" />
+    </form>
+  </body>
+</html>
