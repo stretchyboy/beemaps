@@ -1,3 +1,4 @@
+from tkinter import FALSE
 from flask import Flask, render_template, request, redirect, url_for
 import folium
 from folium import plugins
@@ -31,21 +32,27 @@ csrf = CSRFProtect(app)
 
 class MapForm(FlaskForm):
     renderer1 = SelectField('Renderer', choices=["None", "Heatmap","Pins", "Pins with Labels", "Hornet Range", "Hornet Range with Labels"], default="Heatmap", validators=[DataRequired()])
-    colour1 = SelectField('Colour', choices=["Red","Blue","Green","Orange", "Purple"], validators=[DataRequired()])
+    colour1 = SelectField('Colour', choices=["Red","Blue","Green","Orange", "Purple"], default="None", validators=[DataRequired()])
     icon1 = SelectField('Icon', choices=["None","OK","Flag"], validators=[DataRequired()])
     points1 = TextAreaField("Points", 
                             description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
-                            validators=[DataRequired()],
-                            default=demo_points.postcode_labeled)
+                            validators=[DataRequired()])
 
     renderer2 = SelectField('Renderer 2', choices=["None", "Heatmap","Pins","Hornet Range"], default="Pins", validators=[DataRequired()])
-    colour2 = SelectField('Colour', choices=["Red","Blue","Green","Orange", "Purple"], default="Blue", validators=[DataRequired()])
-    icon2 = SelectField('Icon', choices=["None","OK","Flag"], default="Flag", validators=[DataRequired()])
+    colour2 = SelectField('Colour', choices=["None", "Red","Blue","Green","Orange", "Purple"], default="Blue", validators=[DataRequired()])
+    icon2 = SelectField('Icon', choices=["None","OK","Flag"], default="OK", validators=[DataRequired()])
     points2 = TextAreaField("Points", 
-                            description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
-                            validators=[DataRequired()],
-                            default=demo_points.lat_lon_labeled)
-    
+                            #description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
+                            #validators=[DataRequired()]
+                            )
+
+    renderer3 = SelectField('Renderer 3', choices=["None", "Heatmap","Pins","Hornet Range"], default="Pins", validators=[DataRequired()])
+    colour3 = SelectField('Colour', choices=["None", "Red","Blue","Green","Orange", "Purple"], default="Green", validators=[DataRequired()])
+    icon3 = SelectField('Icon', choices=["None","OK","Flag"], default="Flag", validators=[DataRequired()])
+    points3 = TextAreaField("Points", 
+                            #description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
+                            #validators=[DataRequired()]
+                            )
 
     password = PasswordField("Password")
     preview = SubmitField('Preview')
@@ -115,7 +122,7 @@ def index():
     pins = 0
     circles = 0
 
-    for i in range(1,3):
+    for i in range(1,4):
       #print("i",i )
       if request.form[f'points{i}']:
         #print("request.form", request.form)
@@ -189,4 +196,4 @@ def index():
   return render_template("index.html", form=form, iframe=iframe)
   
 if __name__ == '__main__':
-    app.run(debug=True, port=os.getenv("PORT", default=5000))
+    app.run(debug=FALSE, port=os.getenv("PORT", default=5000))
