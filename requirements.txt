@@ -4,3 +4,5 @@ kml2geojson
 numpy
 pandas
 pyarrow
+Flask-WTF
+bootstrap-flask
