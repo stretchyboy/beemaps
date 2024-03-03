@@ -1,5 +1,5 @@
 from tkinter import FALSE
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request
 import folium
 from folium import plugins
 import json
@@ -9,8 +9,6 @@ import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 from folium.plugins import HeatMap
 from numpy import result_type
 import requests
-import pandas as pd
-
 from flask_bootstrap import Bootstrap5
 
 from flask_wtf import FlaskForm, CSRFProtect
