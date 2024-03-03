@@ -3,3 +3,4 @@ folium
 kml2geojson
 numpy
 pandas
+pyarrow

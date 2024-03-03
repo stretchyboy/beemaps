@@ -1,38 +1,48 @@
 <html>
-  <body>
-    <form action="/map" method="post">
-      <div>
-        <label for="heatmap_points">Heatmap Points</label>
-        <br />
-        Latitude,Longitude
-        <br />
-        <textarea name="heatmap_points" cols="40" rows="10">{{ form.heatmap_points }}
-</textarea>
-      </div>
-      <div>
-        <label for="point_points">Points</label>
-        <br />
-        Latitude,Longitude
-        <br />
-        <textarea name="point_points" cols="40" rows="10">
-{{ form.point_points }}</textarea
-        >
-      </div>
-       <div>
-        <label for="point_points2">Points 2</label>
-        <br />
-        Latitude,Longitude
-        <br />
-        <textarea name="point_points2" cols="40" rows="10">
-{{ form.point_points2 }}</textarea
-        >
-      </div>
-      <div>
-        <label for="password">Password</label>
-        <br />
-        <input type="password" name="password" value="{{ form.password }}" />
-      </div>
-      <input type="submit" name="Do" value="Make Map" />
-    </form>
-  </body>
+
+<body>
+  <form action="/map" method="post">
+    <div>
+      <label for="renderer1"> Renderer </label>
+      <select name="renderer1"> 
+        <option>Heatmap</option>
+        <option>Pins</option>
+        <option>Hornet Range</option>
+      </select>
+      <label for="colour1">Colour</label>
+      <select name="colour1"> 
+        <option>Blue</option>
+        <option>Red</option>
+        <option>Green</option>
+        <option>Orange</option>
+      </select>
+      <label for="icon1">Icon</label>
+      <select name="icon1"> 
+        <option>OK</option>
+        <option>Flag</option>
+      </select>
+
+      <br/>
+      <label for="points1"><details><summary>Points</summary>
+        <ul>
+          <li>Latitude,Longitude (or Postcode) (,Label Optional)</li>
+          <li>can use tabs instead of ,).</li>
+          <li>Must include row headers</li>
+        </ul>
+      </details></label>
+      <textarea name="points1" cols="40" 
+      rows="10">{{form.points1}}Postcode
+S6 1TJ
+S6 4QB
+S65 1EN</textarea>
+    </div>
+    <div>
+      <label for="password">Password</label>
+      <br />
+      <input type="password" name="password" value="{{ form.password }}" />
+    </div>
+    <input type="submit" name="Do" value="Make Map" />
+  </form>
+</body>
+
 </html>

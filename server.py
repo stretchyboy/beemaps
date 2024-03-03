@@ -6,11 +6,54 @@ import io, os
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 from folium.plugins import HeatMap
+from numpy import result_type
+import requests
+import pandas as pd
 
+RADIUS = 500
 
 app = Flask(__name__)
 
 app.secret_key = os.environ.get('APP_SECRET_KEY')
+
+def call_api(url: str) -> dict:
+    postcode_response = requests.get(url)
+    return postcode_response.json()
+
+def get_data(postcode):
+    url = f"http://api.getthedata.com/postcode/{postcode}"
+    req = requests.get(url)
+
+    if req.json()["status"] == "match":
+        results = req.json()["data"]
+        latitude = results.get("latitude")
+        longitude = results.get("longitude")
+    else:
+        latitude = None
+        longitude = None
+
+    return latitude, longitude
+
+def get_columns(code):
+    api_param = code
+    return get_data(api_param)
+
+def get_latlong(text):
+    data = io.StringIO(text.replace("\t",","))
+    print("get_latlong text", text, "data", data)
+    df = pd.read_csv(data, dtype=object)
+    df.drop_duplicates()
+    df = df.dropna(axis=0)
+
+    if ("Latitude" not in df) and ("Postcode" in df):    
+        df[["Latitude", "Longitude"]] = df.apply(
+            lambda row: get_columns(row["Postcode"]), axis=1, result_type="expand"
+        )
+    
+    df = df.dropna(axis=0)
+    print("get_latlong df", df)
+    
+    return df
 
 @app.route('/')
 def index():
@@ -18,7 +61,9 @@ def index():
   
 @app.route('/map', methods=['POST'])
 def showmap():
+  #print("request.form", request.form)
   if (request.form['password'] != app.secret_key):
+    print("Password Didn't Match")
     return render_template("index.html", form=request.form)
   
   start_coords = (46.9540700, 142.7360300);
@@ -31,59 +76,55 @@ def showmap():
       control_scale=True,
   );
   
-  if request.form['heatmap_points']:
-    heatmap_data = io.StringIO(request.form['heatmap_points'].replace("\t",","))
-    df_acc = pd.read_csv(heatmap_data, dtype=object)
-    print(df_acc)
-    df_acc.drop_duplicates()
-    df_acc = df_acc.dropna(axis=0)
-    heat_data = [[row[0],row[1]] for index, row in df_acc.iterrows()]
+  pins = 0
+  circles = 0
 
-    # Plot it on the map
-    HeatMap(heat_data).add_to(m)
-  
-  if request.form['point_points']:
-    points_data = io.StringIO(request.form['point_points'].replace("\t",","))
-    df_acc2 = pd.read_csv(points_data, dtype=object)
-    df_acc2.drop_duplicates()
-    df_acc2 = df_acc2.dropna(axis=0)
-    #latlon = [[row[0],row[1]] for index, row in df_acc2.iterrows()]
-    latlon = [list(row) for index, row in df_acc2.iterrows()]
+
+  if request.form['points1']:
+    #print("request.form", request.form)
+    df = get_latlong(request.form['points1']) 
+    #print("df", df)
     
+    if request.form["renderer1"] == "Heatmap":
+      heat_data = [[row["Latitude"],row["Longitude"]] for index, row in df.iterrows()]
+      HeatMap(heat_data).add_to(m)
     
-    for coord in latlon:
-      text = ''
-      if len(coord)>2:
-        text = ", ".join(coord[2:])
-      folium.Marker( location=[ coord[0], coord[1] ],
-                    #tooltip = text,
-                    tooltip = folium.Tooltip(text, permanent=True),
-                    icon=folium.Icon(color="blue", icon="ok")).add_to( m )
-        #folium.map.Tooltip(" : ".join(coord[2:])).add_to( m )
-       # folium.Tooltip(coord[2])
+    else: 
+      for index, row in df.iterrows():
+        #print("row", row)
+        texts = []
+        if "Postcode" in request.form["renderer1"] and "Postcode" in df:
+          texts.append(row['Postcode'])
+        if "Label" in df:
+          texts.append(row['Label'])
+
+        permanent = "Label" in request.form["renderer1"]
+
+        if "Pin" in request.form["renderer1"]:
+          folium.Marker( 
+            location=[row["Latitude"],row["Longitude"]],
+            tooltip = folium.Tooltip( ": ".join(texts), permanent=permanent),
+            icon=folium.Icon(
+              color=request.form["colour1"].lower(),
+              icon=request.form["icon1"].lower(),
+            )).add_to( m )
         
-  if request.form['point_points2']:
-    points_data2 = io.StringIO(request.form['point_points2'].replace("\t",","))
-    df_acc3 = pd.read_csv(points_data2, dtype=object)
-    df_acc3.drop_duplicates()
-    df_acc3 = df_acc3.dropna(axis=0)
-    latlon3 = [list(row) for index, row in df_acc3.iterrows()]
-    #latlon3 = [[row[0],row[1]] for index, row in df_acc3.iterrows()]
+        if "Hornet Range" in request.form["renderer1"]:
+          folium.Circle(
+            location=[row["Latitude"],row["Longitude"]],
+            radius = RADIUS,
+            color="black",
+            weight=1,
+            fill_opacity=0.2,
+            opacity=1,
+            fill_color=request.form["colour1"].lower(),
+            fill=False,  # gets overridden by fill_color
+            tooltip=folium.Tooltip( ": ".join(texts), permanent=permanent),
+          ).add_to(m)
+              
 
-    for coord in latlon3:
-      text = ''
-      if len(coord)>2:
-        text = ", ".join(coord[2:])
-      folium.Marker( location=[ coord[0], coord[1] ], 
-                     icon=folium.Icon(color="green", icon="flag"),
-                    tooltip = folium.Tooltip(text, permanent=True),
-                    ).add_to( m )
-
-  
   m.fit_bounds(m.get_bounds(), padding=(30, 30))
 
-  folium.TileLayer('stamentoner').add_to(m)
-  folium.TileLayer('stamenwatercolor').add_to(m)
   folium.TileLayer('cartodbpositron').add_to(m)
   folium.TileLayer('openstreetmap').add_to(m)
 
