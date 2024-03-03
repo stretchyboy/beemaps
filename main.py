@@ -9,6 +9,7 @@ from folium.plugins import HeatMap
 from numpy import result_type
 import requests
 from flask_bootstrap import Bootstrap5
+import re
 
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms import PasswordField, StringField, SubmitField, TextAreaField, SelectField, BooleanField
@@ -104,7 +105,7 @@ def get_columns(code):
     return get_data(api_param)
 
 def get_latlong(text):
-    data = io.StringIO(text.replace("\t",","))
+    data = io.StringIO(re.sub("[ ][ ]+", "\t", text).replace("\t",","))
     #print("get_latlong text", text, "data", data)
     df = pd.read_csv(data, dtype=object)
     df.drop_duplicates()
@@ -159,11 +160,15 @@ def index():
            continue
 
         if request.form[f"renderer{i}"] == "Heatmap":
-          heat_data = [[row["Latitude"],row["Longitude"]] for index, row in df.iterrows()]
+          heat_data = [[row["Latitude"],row["Longitude"]] for index, row in df.iterrows() if "Latitude" in row and "Longitude" in row]
           HeatMap(heat_data).add_to(m)
         
         else: 
           for index, row in df.iterrows():
+            if "Latitude" not in row or "Longitude" not in row:
+              flash('Latitude or Longitude not in row')
+              continue
+               
             #print("row", row)
             texts = []
 
