@@ -3,7 +3,6 @@ Jinja2
 MarkupSafe
 flask
 folium
-kml2geojson
 numpy
 pandas
 Flask-WTF
