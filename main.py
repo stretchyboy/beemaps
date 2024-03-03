@@ -1,5 +1,4 @@
-from tkinter import FALSE
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 import folium
 from folium import plugins
 import json
