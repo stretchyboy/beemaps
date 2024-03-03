@@ -27,8 +27,8 @@ S6 4QB,Jenny
 S65 1EN,Nicky
 """
 
-postcode_labeled2 = """Postcode Label
+postcode_labeled2 = """Postcode  Label
 S6 1TJ  David
 S6 4QB  Jenny
-S65 1EN Nicky
+S65 1EN  Nicky
 """
