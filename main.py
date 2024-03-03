@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, flash
 import folium
 from folium import plugins
 import json
@@ -72,7 +72,15 @@ def call_api(url: str) -> dict:
     postcode_response = requests.get(url)
     return postcode_response.json()
 
+postcodecache = {}
+
 def get_data(postcode):
+    if postcode in postcodecache:
+      latitude = postcodecache[postcode]["latitude"]
+      longitude = postcodecache[postcode]["longitude"]
+      print(postcode, "from cache")
+      return latitude, longitude
+    
     url = f"http://api.getthedata.com/postcode/{postcode}"
     req = requests.get(url)
 
@@ -80,6 +88,11 @@ def get_data(postcode):
         results = req.json()["data"]
         latitude = results.get("latitude")
         longitude = results.get("longitude")
+        postcodecache[postcode] = {
+          "latitude":  latitude,
+          "longitude" : longitude
+        }
+    
     else:
         latitude = None
         longitude = None
@@ -98,10 +111,14 @@ def get_latlong(text):
     df = df.dropna(axis=0)
 
     if ("Latitude" not in df) and ("Postcode" in df):    
+      try:
         df[["Latitude", "Longitude"]] = df.apply(
             lambda row: get_columns(row["Postcode"]), axis=1, result_type="expand"
         )
-    
+      except Exception as e:
+          flash('Postcode Conversion failed : '+ str(e))
+          return []
+      
     df = df.dropna(axis=0)
     #print("get_latlong df", df)
     
@@ -138,6 +155,9 @@ def index():
         df = get_latlong(request.form[f'points{i}']) 
         #print("df", df)
         
+        if (len(df) == 0):
+           continue
+
         if request.form[f"renderer{i}"] == "Heatmap":
           heat_data = [[row["Latitude"],row["Longitude"]] for index, row in df.iterrows()]
           HeatMap(heat_data).add_to(m)
@@ -157,6 +177,7 @@ def index():
             tooltip = None
             #permanent = "Label" in request.form[f"renderer{i}"]
             
+            print(f"label{i}",request.form[f"label{i}"])
             permanent = request.form[f"label{i}"] == "Yes"
             
             if len(texts):
