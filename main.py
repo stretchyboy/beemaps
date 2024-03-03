@@ -31,14 +31,14 @@ bootstrap = Bootstrap5(app)
 csrf = CSRFProtect(app)
 
 class MapForm(FlaskForm):
-    renderer1 = SelectField('Renderer', choices=["None", "Heatmap","Pins", "Pins with Labels", "Hornet Range", "Hornet Range with Labels"], default="Heatmap", validators=[DataRequired()])
+    renderer1 = SelectField('Marker1', choices=["None", "Heatmap","Pins", "Pins with Labels", "Hornet Range", "Hornet Range with Labels"], default="Heatmap", validators=[DataRequired()])
     colour1 = SelectField('Colour', choices=["Red","Blue","Green","Orange", "Purple"], default="None", validators=[DataRequired()])
     icon1 = SelectField('Icon', choices=["None","OK","Flag"], validators=[DataRequired()])
     points1 = TextAreaField("Points", 
                             description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
                             validators=[DataRequired()])
 
-    renderer2 = SelectField('Renderer 2', choices=["None", "Heatmap","Pins","Hornet Range"], default="Pins", validators=[DataRequired()])
+    renderer2 = SelectField('Marker2', choices=["None", "Heatmap","Pins","Hornet Range"], default="Pins", validators=[DataRequired()])
     colour2 = SelectField('Colour', choices=["None", "Red","Blue","Green","Orange", "Purple"], default="Blue", validators=[DataRequired()])
     icon2 = SelectField('Icon', choices=["None","OK","Flag"], default="OK", validators=[DataRequired()])
     points2 = TextAreaField("Points", 
@@ -46,7 +46,7 @@ class MapForm(FlaskForm):
                             #validators=[DataRequired()]
                             )
 
-    renderer3 = SelectField('Renderer 3', choices=["None", "Heatmap","Pins","Hornet Range"], default="Pins", validators=[DataRequired()])
+    renderer3 = SelectField('Marker3', choices=["None", "Heatmap","Pins","Hornet Range"], default="Pins", validators=[DataRequired()])
     colour3 = SelectField('Colour', choices=["None", "Red","Blue","Green","Orange", "Purple"], default="Green", validators=[DataRequired()])
     icon3 = SelectField('Icon', choices=["None","OK","Flag"], default="Flag", validators=[DataRequired()])
     points3 = TextAreaField("Points", 
