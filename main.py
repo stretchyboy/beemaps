@@ -11,7 +11,7 @@ import requests
 from flask_bootstrap import Bootstrap5
 
 from flask_wtf import FlaskForm, CSRFProtect
-from wtforms import PasswordField, StringField, SubmitField, TextAreaField, SelectField 
+from wtforms import PasswordField, StringField, SubmitField, TextAreaField, SelectField, BooleanField
 from wtforms.validators import DataRequired, Length
 
 import demo_points
@@ -27,25 +27,37 @@ bootstrap = Bootstrap5(app)
 # Flask-WTF requires this line
 csrf = CSRFProtect(app)
 
+#MARKERS = ["None", "Heatmap","Pins", "Pins with Labels", "Pins with Postcodes and Labels", "Hornet Range", "Hornet Range with Labels", "Hornet Range with Postcodes and Labels"]
+MARKERS = ["None", "Heatmap","Pins", "Range 500m", "Range 750m", "Range 1km"]
+COLOURS = ["Red","Blue","Green","Orange", "Purple"]
+ICONS = ["None","OK","Flag"]
+YESNO = ["No", "Yes"]
+
 class MapForm(FlaskForm):
-    renderer1 = SelectField('Marker1', choices=["None", "Heatmap","Pins", "Pins with Labels", "Hornet Range", "Hornet Range with Labels"], default="Heatmap", validators=[DataRequired()])
-    colour1 = SelectField('Colour', choices=["Red","Blue","Green","Orange", "Purple"], default="None", validators=[DataRequired()])
-    icon1 = SelectField('Icon', choices=["None","OK","Flag"], validators=[DataRequired()])
+    renderer1 = SelectField('Marker1', choices=MARKERS, default="Heatmap", validators=[DataRequired()])
+    colour1 = SelectField('Colour', choices=COLOURS, default="None", validators=[DataRequired()])
+    icon1 = SelectField('Icon', choices=ICONS, validators=[DataRequired()])
+    postcode1 = SelectField('Postcode in Label', choices=YESNO, validators=[DataRequired(), ])
+    label1 = SelectField('Label always on', choices=YESNO, validators=[DataRequired(), ])
     points1 = TextAreaField("Points", 
                             description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
                             validators=[DataRequired()])
 
-    renderer2 = SelectField('Marker2', choices=["None", "Heatmap","Pins","Hornet Range"], default="Pins", validators=[DataRequired()])
-    colour2 = SelectField('Colour', choices=["None", "Red","Blue","Green","Orange", "Purple"], default="Blue", validators=[DataRequired()])
-    icon2 = SelectField('Icon', choices=["None","OK","Flag"], default="OK", validators=[DataRequired()])
+    renderer2 = SelectField('Marker2', choices=MARKERS, default="Pins", validators=[DataRequired()])
+    colour2 = SelectField('Colour', choices=COLOURS, default="Blue", validators=[DataRequired()])
+    icon2 = SelectField('Icon', choices=ICONS, default="OK", validators=[DataRequired()])
+    postcode2 = SelectField('Postcode in Label', choices=YESNO, validators=[DataRequired(), ])
+    label2 = SelectField('Label always on', choices=YESNO, validators=[DataRequired(), ])
     points2 = TextAreaField("Points", 
                             #description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
                             #validators=[DataRequired()]
                             )
 
-    renderer3 = SelectField('Marker3', choices=["None", "Heatmap","Pins","Hornet Range"], default="Pins", validators=[DataRequired()])
-    colour3 = SelectField('Colour', choices=["None", "Red","Blue","Green","Orange", "Purple"], default="Green", validators=[DataRequired()])
-    icon3 = SelectField('Icon', choices=["None","OK","Flag"], default="Flag", validators=[DataRequired()])
+    renderer3 = SelectField('Marker3', choices=MARKERS, default="Pins", validators=[DataRequired()])
+    colour3 = SelectField('Colour', choices=COLOURS, default="Green", validators=[DataRequired()])
+    icon3 = SelectField('Icon', choices=ICONS, default="Flag", validators=[DataRequired()])
+    postcode3 = SelectField('Postcode in Label', choices=YESNO, validators=[DataRequired(), ])
+    label3 = SelectField('Label always on', choices=YESNO, validators=[DataRequired(), ])
     points3 = TextAreaField("Points", 
                             #description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
                             #validators=[DataRequired()]
@@ -134,13 +146,18 @@ def index():
           for index, row in df.iterrows():
             #print("row", row)
             texts = []
-            if "Postcode" in request.form[f"renderer{i}"] and "Postcode" in df:
+
+            if request.form[f"postcode{i}"] == "Yes" and "Postcode" in row:
+            #if "Postcode" in request.form[f"renderer{i}"] and "Postcode" in row:
               texts.append(row['Postcode'])
-            if "Label" in df:
+
+            if "Label" in row:
               texts.append(row['Label'])
 
             tooltip = None
-            permanent = "Label" in request.form[f"renderer{i}"]
+            #permanent = "Label" in request.form[f"renderer{i}"]
+            
+            permanent = request.form[f"label{i}"] == "Yes"
             
             if len(texts):
               tooltip = folium.Tooltip( ": ".join(texts), permanent=permanent)
@@ -155,6 +172,12 @@ def index():
                 )).add_to( m )
             
             if "Range" in request.form[f"renderer{i}"]:
+              if request.form[f"renderer{i}"] == "Range 500m":
+                 RADIUS = 500
+              if request.form[f"renderer{i}"] == "Range 750m":
+                 RADIUS = 750
+              if request.form[f"renderer{i}"] == "Range 1km":
+                 RADIUS = 100
               folium.Circle(
                 location=[row["Latitude"],row["Longitude"]],
                 radius = RADIUS,
