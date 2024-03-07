@@ -203,7 +203,7 @@ def index():
               if request.form[f"renderer{i}"] == "Range 750m":
                  RADIUS = 750
               if request.form[f"renderer{i}"] == "Range 1km":
-                 RADIUS = 100
+                 RADIUS = 1000
               folium.Circle(
                 location=[row["Latitude"],row["Longitude"]],
                 radius = RADIUS,
