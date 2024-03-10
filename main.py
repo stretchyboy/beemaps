@@ -36,7 +36,7 @@ COLOURS = ["Red","Blue","Green","Orange", "Purple"]
 ICONS = ["None","OK","Flag"]
 YESNO = ["No", "Yes"]
 
-TEST = True
+TEST = False
 
 class MapForm(FlaskForm):
     renderer1 = SelectField('Marker1', choices=MARKERS, default="Heatmap", validators=[DataRequired()])
