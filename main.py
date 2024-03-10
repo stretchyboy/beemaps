@@ -12,6 +12,7 @@ import requests
 from flask_bootstrap import Bootstrap5
 import re
 from base64 import urlsafe_b64decode, urlsafe_b64encode
+import pgeocode
 
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms import PasswordField, StringField, SubmitField, TextAreaField, SelectField, BooleanField
@@ -19,6 +20,8 @@ from wtforms.validators import DataRequired, Length
 
 import demo_points
 
+nomi = pgeocode.Nominatim('gb')
+        
 RADIUS = 500
 
 app = Flask(__name__)
@@ -84,6 +87,8 @@ def call_api(url: str) -> dict:
 postcodecache = {}
 
 def get_data(postcode):
+    latitude = None
+    longitude = None
     if postcode in postcodecache:
       latitude = postcodecache[postcode]["latitude"]
       longitude = postcodecache[postcode]["longitude"]
@@ -92,7 +97,8 @@ def get_data(postcode):
     url = f"http://api.getthedata.com/postcode/{postcode}"
     req = requests.get(url)
 
-    if req.json()["status"] == "match":
+    if req.json()["status"] == "match" :
+      if req.json()["match_type"] == "unit_postcode":
         results = req.json()["data"]
         latitude = results.get("latitude")
         longitude = results.get("longitude")
@@ -100,10 +106,11 @@ def get_data(postcode):
           "latitude":  latitude,
           "longitude" : longitude
         }
+      else:
+        dat = nomi.query_postal_code(postcode)
+        latitude = dat["latitude"]
+        longitude = dat["longitude"]
     
-    else:
-        latitude = None
-        longitude = None
 
     return latitude, longitude
 
