@@ -28,12 +28,17 @@ SBKA & BBKA Maps
 
 
       {{ render_form(form, form_type="horizontal") }}
-
+      
+     
     </div>  
     <div class="col-sm-8">
 
       {{ iframe|safe }}
 
+      {% if crunched %}
+        <br />
+        <a href="\map\{{crunched}}" target="_blank" >Map Permalink</a>
+      {% endif %}
     </div>
   </div>
 </div>

@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, flash
+from cgi import test
+from flask import Flask, render_template, request, flash, jsonify
 import folium
 from folium import plugins
 import json
@@ -10,6 +11,7 @@ from numpy import result_type
 import requests
 from flask_bootstrap import Bootstrap5
 import re
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms import PasswordField, StringField, SubmitField, TextAreaField, SelectField, BooleanField
@@ -34,6 +36,8 @@ COLOURS = ["Red","Blue","Green","Orange", "Purple"]
 ICONS = ["None","OK","Flag"]
 YESNO = ["No", "Yes"]
 
+TEST = True
+
 class MapForm(FlaskForm):
     renderer1 = SelectField('Marker1', choices=MARKERS, default="Heatmap", validators=[DataRequired()])
     colour1 = SelectField('Colour', choices=COLOURS, default="None", validators=[DataRequired()])
@@ -42,7 +46,9 @@ class MapForm(FlaskForm):
     label1 = SelectField('Label always on', choices=YESNO, validators=[DataRequired(), ])
     points1 = TextAreaField("Points", 
                             description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
-                            validators=[DataRequired()])
+                            validators=[DataRequired()],
+                            default = demo_points.lat_lon_text if TEST else None
+                            )
 
     renderer2 = SelectField('Marker2', choices=MARKERS, default="Pins", validators=[DataRequired()])
     colour2 = SelectField('Colour', choices=COLOURS, default="Blue", validators=[DataRequired()])
@@ -50,6 +56,7 @@ class MapForm(FlaskForm):
     postcode2 = SelectField('Postcode in Label', choices=YESNO, validators=[DataRequired(), ])
     label2 = SelectField('Label always on', choices=YESNO, validators=[DataRequired(), ])
     points2 = TextAreaField("Points", 
+                            default = demo_points.postcode_text if TEST else None
                             #description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
                             #validators=[DataRequired()]
                             )
@@ -60,6 +67,7 @@ class MapForm(FlaskForm):
     postcode3 = SelectField('Postcode in Label', choices=YESNO, validators=[DataRequired(), ])
     label3 = SelectField('Label always on', choices=YESNO, validators=[DataRequired(), ])
     points3 = TextAreaField("Points", 
+                            default = demo_points.postcode_labeled2 if TEST else None
                             #description='"Latitude, Longitude /Postcode (,Label)" can use tabs instead of ",", Must include header row',
                             #validators=[DataRequired()]
                             )
@@ -79,7 +87,6 @@ def get_data(postcode):
     if postcode in postcodecache:
       latitude = postcodecache[postcode]["latitude"]
       longitude = postcodecache[postcode]["longitude"]
-      print(postcode, "from cache")
       return latitude, longitude
     
     url = f"http://api.getthedata.com/postcode/{postcode}"
@@ -106,7 +113,6 @@ def get_columns(code):
 
 def get_latlong(text):
     data = io.StringIO(re.sub("[ ][ ]+", "\t", text).replace("\t",","))
-    #print("get_latlong text", text, "data", data)
     df = pd.read_csv(data, dtype=object)
     df.drop_duplicates()
     df = df.dropna(axis=0)
@@ -121,21 +127,9 @@ def get_latlong(text):
           return []
       
     df = df.dropna(axis=0)
-    #print("get_latlong df", df)
-    
     return df
 
-@app.route('/', methods=['POST', 'GET'])
-def index():
-  form = MapForm()
-  iframe = ""
-
-  if request.method == 'POST':
-    #print("request.form", request.form)
-    if (request.form['password'] != app.secret_key):
-      print("Password Didn't Match")
-      return render_template("index.html", form=request.form)
-    
+def get_map(formdata):   
     start_coords = (46.9540700, 142.7360300);
     
     m = folium.Map(
@@ -148,18 +142,15 @@ def index():
     
     pins = 0
     circles = 0
-
+  
     for i in range(1,4):
-      #print("i",i )
-      if request.form[f'points{i}']:
-        #print("request.form", request.form)
-        df = get_latlong(request.form[f'points{i}']) 
-        #print("df", df)
+      if formdata[f'points{i}']:
+        df = get_latlong(formdata[f'points{i}']) 
         
         if (len(df) == 0):
            continue
 
-        if request.form[f"renderer{i}"] == "Heatmap":
+        if formdata[f"renderer{i}"] == "Heatmap":
           heat_data = [[row["Latitude"],row["Longitude"]] for index, row in df.iterrows() if "Latitude" in row and "Longitude" in row]
           HeatMap(heat_data).add_to(m)
         
@@ -172,37 +163,37 @@ def index():
             #print("row", row)
             texts = []
 
-            if request.form[f"postcode{i}"] == "Yes" and "Postcode" in row:
-            #if "Postcode" in request.form[f"renderer{i}"] and "Postcode" in row:
+            if formdata[f"postcode{i}"] == "Yes" and "Postcode" in row:
+            #if "Postcode" in formdata[f"renderer{i}"] and "Postcode" in row:
               texts.append(row['Postcode'])
 
             if "Label" in row:
               texts.append(row['Label'])
 
             tooltip = None
-            #permanent = "Label" in request.form[f"renderer{i}"]
+            #permanent = "Label" in formdata[f"renderer{i}"]
             
-            print(f"label{i}",request.form[f"label{i}"])
-            permanent = request.form[f"label{i}"] == "Yes"
+            #print(f"label{i}",formdata[f"label{i}"])
+            permanent = formdata[f"label{i}"] == "Yes"
             
             if len(texts):
               tooltip = folium.Tooltip( ": ".join(texts), permanent=permanent)
 
-            if "Pin" in request.form[f"renderer{i}"]:
+            if "Pin" in formdata[f"renderer{i}"]:
               folium.Marker( 
                 location=[row["Latitude"],row["Longitude"]],
                 tooltip = tooltip,
                 icon=folium.Icon(
-                  color=request.form[f"colour{i}"].lower(),
-                  icon=request.form[f"icon{i}"].lower(),
+                  color=formdata[f"colour{i}"].lower(),
+                  icon=formdata[f"icon{i}"].lower(),
                 )).add_to( m )
             
-            if "Range" in request.form[f"renderer{i}"]:
-              if request.form[f"renderer{i}"] == "Range 500m":
+            if "Range" in formdata[f"renderer{i}"]:
+              if formdata[f"renderer{i}"] == "Range 500m":
                  RADIUS = 500
-              if request.form[f"renderer{i}"] == "Range 750m":
+              if formdata[f"renderer{i}"] == "Range 750m":
                  RADIUS = 750
-              if request.form[f"renderer{i}"] == "Range 1km":
+              if formdata[f"renderer{i}"] == "Range 1km":
                  RADIUS = 1000
               folium.Circle(
                 location=[row["Latitude"],row["Longitude"]],
@@ -211,12 +202,11 @@ def index():
                 weight=1,
                 fill_opacity=0.2,
                 opacity=1,
-                fill_color=request.form[f"colour{i}"].lower(),
+                fill_color=formdata[f"colour{i}"].lower(),
                 fill=False,  # gets overridden by fill_color
                 tooltip=tooltip,
               ).add_to(m)
                   
-
     m.fit_bounds(m.get_bounds(), padding=(30, 30))
 
     folium.TileLayer('cartodbpositron').add_to(m)
@@ -230,6 +220,35 @@ def index():
     gc = plugins.Geocoder(collapsed=True, position='topleft', add_marker=True).add_to(m)
 
     mc = plugins.MeasureControl( position='topleft').add_to(m)
+    
+    return m
+
+
+@app.route('/', methods=['POST', 'GET'])
+def index():
+  iframe = ""
+  crunched = None  
+
+  form = MapForm()
+  #maprequest = request.args.get('m')
+  #print ("maprequest", maprequest)
+  if request.method == 'POST':# or ( maprequest):
+    
+    if (request.form['password'] != app.secret_key):
+      error = ("Password Didn't Match")
+      return render_template("index.html", form=request.form, error=error, crunch=None)
+    
+    formdata = {}
+
+    for i in range(1,4):
+      formdata[f'points{i}']    = request.form[f'points{i}']
+      formdata[f'colour{i}']    = request.form[f'colour{i}']
+      formdata[f'icon{i}']      = request.form[f'icon{i}']
+      formdata[f'label{i}']     = request.form[f'label{i}']
+      formdata[f'postcode{i}']  = request.form[f'postcode{i}']
+      formdata[f'renderer{i}']  = request.form[f'renderer{i}']
+    
+    m = get_map(formdata)
 
     if "submit" in request.form:
        return m.get_root()._repr_html_()
@@ -238,8 +257,20 @@ def index():
     m.get_root().width = "800px"
     m.get_root().height = "600px"
     iframe = m.get_root()._repr_html_()
+    
+    crunched = urlsafe_b64encode(json.dumps(formdata).encode('utf-8')).decode("utf-8", "ignore")    
+    #print(crunched)
+
+  return render_template("index.html", form=form, iframe=iframe, crunched=crunched)
+
+
+@app.route('/map/<map>', methods=['GET'])
+def maprender(map):
+  text = urlsafe_b64decode(map+ "====")
+  data = json.loads(text)
+  m = get_map(data)
+  return m.get_root()._repr_html_()
   
-  return render_template("index.html", form=form, iframe=iframe)
-  
+
 if __name__ == '__main__':
     app.run(debug=True, port=os.getenv("PORT", default=5000))
